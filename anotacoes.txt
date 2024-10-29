@@ -1,0 +1,100 @@
+CRIAR UM SERVERLESS POR LINHA DE COMANDO:
+kn service create <nome serviço> --image docker.io/<nome dockerhub>/<imagem>:<tag>
+ou
+kn service create serverless-app --image docker.io/leoalmeida99/serverless-app:1.0-SNAPSHOT
+
+
+kn service describe <nome serviço>
+
+ALTERAR A VARIAVEL DE AMBIENTE DO SERVERLESS
+kn service update <nome serviço> --env "msg=alterei, " 
+
+LISTAR REVISÕES
+kn revision list
+
+DELETE SERVERLESS:
+kn service delete <nome serviço>
+
+
+CRIAR SERVIÇO USANDO YAML:
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: serverless-app
+spec: 
+  template:
+    spec:
+      containers:
+        - image: docker.io/leoalmeida99/serverless-app:1.0-SNAPSHOT
+
+kubectl apply -f src/main/knative/serverless-app.yaml
+
+TUDO NO FINAL VIRA DEPLOYMENT E REPLICASET
+
+kubectl get deploy
+kubectl get rs
+
+kn routes list
+
+"TAGUIAR" AS VERSÕES
+kn service update <nome do serviço serverless> --tag=<tag>=<tag desejada>
+
+CRIAR OUTRA TAG:
+kn service update <nome do serviço serverless> --tag@latest=latest
+
+
+while true
+do curl <endereco serverless>
+sleep .3
+done
+
+kn service update <nome serviço serverless> --traffic old=100, new=0
+
+ESCALABILIDADE NO SERVERLESS COM KNATIVE
+
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+    name: serverless-app
+spec:
+    template:
+        metadata:
+            annotations:
+                autoscaling.knative.dev/target: "10"
+        spec:
+            containers:
+                - image: docker.io/leoalmeida99/serverless-app:1.0-SNAPSHOT
+
+o que muda nessa yaml, e que esse, se trata de requisição concorrente,
+autoscaling.knative.dev/target: "10"
+aqui diz: a cada 10 requisições concorrentes no mesmo pod, vai criar uma nova instancia
+agora temos "metrica/configuração" quando houver um pico de requisições, ele se resolve "sozinho"
+
+kubectl apply -f 
+kn route list
+
+
+COMANDO HEY, FAZ SIMULAR 50 REQUISIÇÕES CONCORRENTES DURANTE 10 SEGUNDOS:
+hey -c 50 -z 10s "<endereco serverless>/?sleep3?upto=10000&memload=100"
+
+
+EVITAR TEMPO INICIAL PARA INICIAR UM SERVERLESSS, OU SEJA, QUERO 2 INSTANCIAS JA CRIADAS,
+O QUE LEVA EM CONTRA NO SENTIDO DE SERVERLESS, PORÉM EXISTE ESSA POSSIBILIDADE
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+    name: serverless-app
+spec:
+    template:
+        metadata:
+            annotations:
+                autoscaling.knative.dev/minScale: "2"
+                autoscaling.knative.dev/target: "10"
+        spec:
+            containers:
+                - image: docker.io/leoalmeida99/serverless-app:1.0-SNAPSHOT
+
+kubectl apply -f 
+
+ESSA INSTANCIA NUNCA MORRE
